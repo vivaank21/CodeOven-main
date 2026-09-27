@@ -1,0 +1,2746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeOven — The Next-Gen Offline Web IDE & Live Playground</title>
+  <meta name="description" content="Ultra-fast, zero-config offline web IDE for HTML, CSS, and JavaScript with instant live preview, smart file management, and one-click export.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Primary Brand & Accents */
+      --cyan-400: #38BDF8;
+      --cyan-500: #06B6D4;
+      --cyan-neon: #00F2FE;
+      --blue-500: #3B82F6;
+      --blue-600: #2563EB;
+      --indigo-500: #6366F1;
+      --indigo-600: #4F46E5;
+      --purple-500: #A855F7;
+      --emerald-400: #34D399;
+      --emerald-500: #10B981;
+      --amber-400: #FBBF24;
+      --rose-500: #F43F5E;
+
+      /* Dark Space Theme */
+      --bg-void: #030712;
+      --bg-base: #070D1F;
+      --bg-surface: #0C152E;
+      --bg-card: rgba(15, 26, 54, 0.75);
+      --bg-card-hover: rgba(23, 37, 74, 0.85);
+      --bg-glass: rgba(10, 20, 44, 0.65);
+      --bg-glass-subtle: rgba(255, 255, 255, 0.03);
+
+      /* Borders */
+      --border-subtle: rgba(56, 189, 248, 0.08);
+      --border-mid: rgba(56, 189, 248, 0.18);
+      --border-glow: rgba(56, 189, 248, 0.4);
+      --border-white: rgba(255, 255, 255, 0.08);
+
+      /* Typography */
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-subtle: #475569;
+      --text-accent: #38BDF8;
+
+      /* Glows & Shadows */
+      --glow-cyan: 0 0 35px rgba(6, 182, 212, 0.25);
+      --glow-blue: 0 0 40px rgba(59, 130, 246, 0.3);
+      --glow-purple: 0 0 35px rgba(168, 85, 247, 0.25);
+      --shadow-card: 0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      --shadow-elevated: 0 30px 80px -15px rgba(0, 0, 0, 0.85), 0 0 40px rgba(56, 189, 248, 0.1);
+
+      /* Fonts */
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-code: 'JetBrains Mono', monospace;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      color-scheme: dark;
+    }
+
+    body {
+      background-color: var(--bg-void);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background: rgba(6, 182, 212, 0.35);
+      color: #fff;
+    }
+
+    /* Background Dynamic Canvas & Grid */
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .grid-matrix-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image:
+        linear-gradient(to right, rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 85% 65% at 50% 15%, black 40%, transparent 95%);
+    }
+
+    .aurora-glow {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.45;
+      animation: pulse-aurora 14s ease-in-out infinite alternate;
+    }
+
+    .glow-top-right {
+      top: -150px;
+      right: -100px;
+      width: 650px;
+      height: 650px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.4), rgba(6, 182, 212, 0.15), transparent 70%);
+    }
+
+    .glow-mid-left {
+      top: 35%;
+      left: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.35), rgba(168, 85, 247, 0.15), transparent 70%);
+      animation-delay: -5s;
+    }
+
+    .glow-bottom-right {
+      bottom: 5%;
+      right: -100px;
+      width: 550px;
+      height: 550px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.3), rgba(37, 99, 235, 0.15), transparent 70%);
+      animation-delay: -8s;
+    }
+
+    @keyframes pulse-aurora {
+      0% { transform: scale(1) translate(0, 0); opacity: 0.35; }
+      50% { transform: scale(1.15) translate(30px, -20px); opacity: 0.55; }
+      100% { transform: scale(0.95) translate(-20px, 30px); opacity: 0.4; }
+    }
+
+    /* Container & Layout */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    section {
+      position: relative;
+      z-index: 1;
+    }
+
+    .sec-pad {
+      padding: 8rem 0;
+    }
+
+    /* Typography Utilities */
+    .font-display { font-family: var(--font-display); }
+    .font-code { font-family: var(--font-code); }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #FFFFFF 15%, var(--cyan-400) 50%, var(--indigo-500) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gradient-text-accent {
+      background: linear-gradient(135deg, var(--cyan-neon) 0%, var(--blue-500) 50%, var(--purple-500) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gradient-text-amber {
+      background: linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Glass Panels & Modern Cards */
+    .glass-panel {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-white);
+      border-radius: 20px;
+      box-shadow: var(--shadow-card);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-panel:hover {
+      border-color: var(--border-mid);
+      box-shadow: var(--shadow-elevated);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0.75rem 1.6rem;
+      border-radius: 12px;
+      font-family: var(--font-body);
+      font-size: 0.925rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(60deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+      transform: rotate(30deg) translateY(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .btn:hover::after {
+      transform: rotate(30deg) translateY(100%);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue-600), var(--cyan-500));
+      color: #FFFFFF;
+      box-shadow: 0 4px 24px rgba(6, 182, 212, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--blue-500), var(--cyan-400));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(6, 182, 212, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-glow {
+      position: relative;
+    }
+
+    .btn-glow::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(135deg, var(--cyan-neon), var(--indigo-500));
+      border-radius: 14px;
+      z-index: -1;
+      opacity: 0.6;
+      filter: blur(8px);
+      transition: opacity 0.3s ease;
+    }
+
+    .btn-glow:hover::before {
+      opacity: 1;
+      filter: blur(12px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+      border: 1px solid var(--border-white);
+      backdrop-filter: blur(12px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--cyan-400);
+      color: #FFFFFF;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.15);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-xl {
+      padding: 0.95rem 2.2rem;
+      font-size: 1.05rem;
+      border-radius: 14px;
+      font-weight: 700;
+    }
+
+    .btn-sm {
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+      border-radius: 8px;
+    }
+
+    /* BADGES & PILLS */
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0.35rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--cyan-400);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.1);
+    }
+
+    .pill-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald-400);
+      box-shadow: 0 0 8px var(--emerald-400);
+      animation: pulse-dot 2s infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    /* NAVIGATION */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.25rem 2rem;
+      transition: all 0.35s ease;
+    }
+
+    header.scrolled {
+      padding: 0.75rem 2rem;
+    }
+
+    .nav-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      border-radius: 100px;
+      background: rgba(7, 13, 31, 0.6);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+    }
+
+    header.scrolled .nav-container {
+      background: rgba(7, 13, 31, 0.88);
+      border-color: rgba(56, 189, 248, 0.2);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.08);
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .logo-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue-600), var(--cyan-neon));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: 1.15rem;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+      position: relative;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.45rem;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-text span {
+      color: var(--cyan-400);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      position: relative;
+      padding: 4px 0;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--cyan-400), var(--indigo-500));
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .nav-links a:hover {
+      color: #FFFFFF;
+    }
+
+    .nav-links a:hover::after {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .nav-tag {
+      font-size: 0.68rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      color: var(--cyan-400);
+      font-family: var(--font-code);
+      font-weight: 600;
+    }
+
+    /* Mobile Hamburger */
+    .mobile-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 6px;
+    }
+
+    .mobile-menu-drawer {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.97);
+      backdrop-filter: blur(30px);
+      z-index: 99;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    .mobile-menu-drawer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-menu-drawer a {
+      font-family: var(--font-display);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-main);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .mobile-menu-drawer a:hover {
+      color: var(--cyan-400);
+    }
+
+    .mobile-close-btn {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-white);
+      color: var(--text-muted);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    /* HERO SECTION */
+    .hero-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 10rem 0 6rem;
+      position: relative;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .hero-badge-wrap {
+      margin-bottom: 1.8rem;
+    }
+
+    .hero-heading {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 5.5vw, 4.6rem);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-subtext {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 520px;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-btn-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 3.5rem;
+    }
+
+    /* Hero Trust Metrics */
+    .hero-stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      width: 100%;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat-box {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1.1;
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+
+    .stat-number span {
+      color: var(--cyan-400);
+      font-size: 1.4rem;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* 3D INTERACTIVE HERO WORKSPACE MOCKUP */
+    .hero-showcase {
+      perspective: 1200px;
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    .ide-mockup-frame {
+      width: 100%;
+      background: var(--bg-base);
+      border-radius: 18px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 40px 100px -20px rgba(0, 0, 0, 0.9),
+        0 0 70px rgba(6, 182, 212, 0.15);
+      overflow: hidden;
+      transform: rotateY(-6deg) rotateX(3deg);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+
+    .ide-mockup-frame:hover {
+      transform: rotateY(0deg) rotateX(0deg);
+    }
+
+    /* IDE Window Topbar */
+    .ide-topbar {
+      background: #050B1A;
+      padding: 0.75rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .ide-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ide-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #FF5F56; }
+    .dot-yellow { background: #FFBD2E; }
+    .dot-green { background: #27C93F; }
+
+    .ide-tabs {
+      display: flex;
+      gap: 4px;
+      margin-left: 1rem;
+    }
+
+    .ide-tab {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0.35rem 0.9rem;
+      border-radius: 7px;
+      font-family: var(--font-code);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-subtle);
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .ide-tab i {
+      font-size: 0.8rem;
+    }
+
+    .ide-tab.active {
+      color: var(--text-main);
+      background: rgba(12, 21, 46, 0.9);
+      border-color: rgba(56, 189, 248, 0.25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .ide-tab.tab-html i { color: #E44D26; }
+    .ide-tab.tab-css i { color: #264DE4; }
+    .ide-tab.tab-js i { color: #F7DF1E; }
+
+    .ide-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ide-badge-pill {
+      font-size: 0.68rem;
+      font-family: var(--font-code);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--emerald-400);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* IDE Body Split (Code & Live Sandbox) */
+    .ide-main-body {
+      display: grid;
+      grid-template-columns: 1.15fr 0.95fr;
+      height: 380px;
+      background: #080F24;
+    }
+
+    .ide-editor-col {
+      display: flex;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .line-numbers {
+      padding: 1.2rem 0.8rem;
+      font-family: var(--font-code);
+      font-size: 0.76rem;
+      color: var(--text-subtle);
+      text-align: right;
+      line-height: 1.85;
+      user-select: none;
+      background: rgba(0, 0, 0, 0.2);
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+      min-width: 44px;
+    }
+
+    .code-content-area {
+      flex: 1;
+      padding: 1.2rem 1rem;
+      font-family: var(--font-code);
+      font-size: 0.78rem;
+      line-height: 1.85;
+      overflow-y: auto;
+      color: #E2E8F0;
+    }
+
+    /* Syntax Highlighting */
+    .syn-tag { color: #38BDF8; font-weight: 600; }
+    .syn-attr { color: #A78BFA; }
+    .syn-str { color: #34D399; }
+    .syn-kw { color: #F472B6; font-weight: 600; }
+    .syn-prop { color: #60A5FA; }
+    .syn-val { color: #FBBF24; }
+    .syn-comment { color: #64748B; font-style: italic; }
+    .syn-fn { color: #67E8F9; }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--cyan-neon);
+      vertical-align: text-bottom;
+      animation: cursor-anim 1s step-end infinite;
+    }
+
+    @keyframes cursor-anim {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Live Preview Column */
+    .ide-preview-col {
+      background: #040817;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .preview-header-bar {
+      padding: 0.6rem 0.9rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .preview-address-bar {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 0.2rem 0.7rem;
+      font-family: var(--font-code);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 75%;
+    }
+
+    .preview-viewport-box {
+      flex: 1;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #0F1D3D 0%, #060B1A 100%);
+      position: relative;
+    }
+
+    /* Mini Live Demo Inside Viewport */
+    .live-demo-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      backdrop-filter: blur(12px);
+      padding: 1.5rem;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(6, 182, 212, 0.2);
+      width: 100%;
+      max-width: 220px;
+      animation: float-widget 4s ease-in-out infinite;
+    }
+
+    @keyframes float-widget {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .live-demo-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--cyan-neon), var(--indigo-500));
+      margin: 0 auto 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFF;
+      font-size: 1.2rem;
+    }
+
+    .live-demo-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .live-demo-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 0.9rem;
+    }
+
+    .live-demo-btn {
+      background: var(--cyan-500);
+      color: #030712;
+      border: none;
+      padding: 0.35rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .live-demo-btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* IDE Bottom Status Bar */
+    .ide-statusbar {
+      background: #040917;
+      padding: 0.45rem 1.2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-code);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* FLOATING HIGHLIGHT CARDS AROUND IDE */
+    .floating-card-tag {
+      position: absolute;
+      background: rgba(12, 21, 46, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      backdrop-filter: blur(16px);
+      padding: 0.75rem 1.1rem;
+      border-radius: 12px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+      animation: float-tag 6s ease-in-out infinite alternate;
+    }
+
+    .tag-top-right {
+      top: -25px;
+      right: -25px;
+    }
+
+    .tag-bottom-left {
+      bottom: -25px;
+      left: -25px;
+      animation-delay: -3s;
+    }
+
+    @keyframes float-tag {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-12px); }
+    }
+
+    .tag-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--cyan-400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+
+    .tag-text-main {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .tag-text-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* MARQUEE ECOSYSTEM TICKER */
+    .marquee-section {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(6, 11, 26, 0.6);
+      backdrop-filter: blur(16px);
+      overflow: hidden;
+      padding: 1.4rem 0;
+      position: relative;
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee-scroll 32s linear infinite;
+    }
+
+    .marquee-track:hover {
+      animation-play-state: paused;
+    }
+
+    .marquee-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 2.5rem;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      transition: color 0.2s;
+    }
+
+    .marquee-item i {
+      font-size: 1.1rem;
+      color: var(--cyan-400);
+    }
+
+    .marquee-item:hover {
+      color: #FFFFFF;
+    }
+
+    .marquee-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.3);
+      margin-left: 2.5rem;
+    }
+
+    @keyframes marquee-scroll {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* SECTION HEADERS */
+    .section-head {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 5rem;
+    }
+
+    .section-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cyan-400);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.2rem, 4vw, 3.4rem);
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      color: #FFFFFF;
+      margin-bottom: 1.2rem;
+    }
+
+    .section-desc {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* BENTO GRID FEATURES */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .bento-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-white);
+      border-radius: 24px;
+      padding: 2.4rem;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(20px);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bento-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(56, 189, 248, 0.08), transparent 40%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .bento-card:hover::before {
+      opacity: 1;
+    }
+
+    .bento-card:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      transform: translateY(-6px);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(6, 182, 212, 0.1);
+    }
+
+    .bento-span-2 {
+      grid-column: span 2;
+    }
+
+    .bento-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      color: var(--cyan-400);
+      margin-bottom: 1.8rem;
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.15);
+    }
+
+    .bento-card.purple .bento-icon-box {
+      background: rgba(168, 85, 247, 0.1);
+      border-color: rgba(168, 85, 247, 0.25);
+      color: var(--purple-500);
+      box-shadow: 0 4px 15px rgba(168, 85, 247, 0.15);
+    }
+
+    .bento-card.emerald .bento-icon-box {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.25);
+      color: var(--emerald-400);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+    }
+
+    .bento-tag {
+      font-family: var(--font-code);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--cyan-400);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+
+    .bento-title {
+      font-family: var(--font-display);
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 0.8rem;
+    }
+
+    .bento-desc {
+      font-size: 0.925rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .bento-mini-mockup {
+      margin-top: 1.8rem;
+      background: #050B1B;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 1.2rem;
+      font-family: var(--font-code);
+      font-size: 0.75rem;
+      line-height: 1.8;
+    }
+
+    /* LIVE PLAYGROUND SECTION ON HOMEPAGE */
+    .playground-section {
+      background: linear-gradient(180deg, transparent 0%, rgba(8, 15, 36, 0.85) 50%, transparent 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .playground-wrapper {
+      background: var(--bg-base);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 24px;
+      box-shadow: var(--shadow-elevated);
+      overflow: hidden;
+    }
+
+    .pg-topbar {
+      padding: 1rem 1.8rem;
+      background: #04091A;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .pg-preset-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pg-preset-btn {
+      padding: 0.35rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pg-preset-btn.active, .pg-preset-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--cyan-400);
+      color: #FFFFFF;
+    }
+
+    .pg-split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 420px;
+    }
+
+    .pg-editor-box {
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      background: #060D22;
+    }
+
+    .pg-tab-bar {
+      display: flex;
+      background: #040817;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0 1rem;
+    }
+
+    .pg-tab {
+      padding: 0.65rem 1.2rem;
+      font-family: var(--font-code);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-subtle);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .pg-tab.active {
+      color: var(--cyan-400);
+      border-bottom-color: var(--cyan-400);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pg-textarea {
+      flex: 1;
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #F1F5F9;
+      font-family: var(--font-code);
+      font-size: 0.85rem;
+      line-height: 1.8;
+      padding: 1.5rem;
+      resize: none;
+    }
+
+    .pg-preview-box {
+      background: #030612;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pg-preview-header {
+      padding: 0.6rem 1.2rem;
+      background: #050B1B;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-code);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .pg-iframe-container {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #FFFFFF;
+    }
+
+    /* WORKFLOW & STEPS */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      position: relative;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-white);
+      border-radius: 20px;
+      padding: 2rem 1.8rem;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .step-card:hover {
+      border-color: var(--cyan-400);
+      transform: translateY(-5px);
+    }
+
+    .step-number-tag {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue-600), var(--cyan-500));
+      color: #FFFFFF;
+      font-family: var(--font-display);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .step-heading {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 0.6rem;
+    }
+
+    .step-text {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* COMPARISON TABLE */
+    .comparison-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border-white);
+      border-radius: 24px;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .comp-table th, .comp-table td {
+      padding: 1.3rem 1.8rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .comp-table th {
+      background: rgba(0, 0, 0, 0.3);
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .comp-table th.highlight-col {
+      color: var(--cyan-400);
+      background: rgba(6, 182, 212, 0.08);
+      border-left: 1px solid rgba(56, 189, 248, 0.2);
+      border-right: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    .comp-table td.highlight-col {
+      background: rgba(6, 182, 212, 0.04);
+      border-left: 1px solid rgba(56, 189, 248, 0.15);
+      border-right: 1px solid rgba(56, 189, 248, 0.15);
+      font-weight: 600;
+      color: #FFFFFF;
+    }
+
+    .feature-name {
+      font-weight: 600;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .check-yes { color: var(--emerald-400); font-size: 1.1rem; }
+    .check-no { color: var(--rose-500); font-size: 1rem; opacity: 0.7; }
+
+    /* FAQ ACCORDION */
+    .faq-grid {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-white);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .faq-item:hover {
+      border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    .faq-question {
+      padding: 1.4rem 1.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: #FFFFFF;
+      user-select: none;
+    }
+
+    .faq-icon {
+      font-size: 0.9rem;
+      color: var(--cyan-400);
+      transition: transform 0.3s ease;
+    }
+
+    .faq-item.active .faq-icon {
+      transform: rotate(180deg);
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s ease;
+      padding: 0 1.8rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 300px;
+      padding: 0 1.8rem 1.4rem;
+    }
+
+    /* CTA BANNER */
+    .cta-container {
+      position: relative;
+      background: linear-gradient(135deg, rgba(14, 25, 56, 0.95), rgba(7, 14, 33, 0.95));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 32px;
+      padding: 6rem 4rem;
+      text-align: center;
+      overflow: hidden;
+      box-shadow: 0 30px 100px -20px rgba(0, 0, 0, 0.9), 0 0 60px rgba(6, 182, 212, 0.15);
+    }
+
+    .cta-glow-orb-1 {
+      position: absolute;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, rgba(6, 182, 212, 0.25) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .cta-glow-orb-2 {
+      position: absolute;
+      bottom: -100px;
+      right: -50px;
+      width: 400px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .cta-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.6rem, 5vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-desc {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 540px;
+      margin: 0 auto 2.8rem;
+      line-height: 1.7;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: #030612;
+      padding: 5rem 0 3rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1.2fr;
+      gap: 4rem;
+      margin-bottom: 4rem;
+    }
+
+    .footer-brand p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      line-height: 1.7;
+      max-width: 320px;
+    }
+
+    .footer-col-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 1.4rem;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--cyan-400);
+    }
+
+    .status-indicator-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0.4rem 0.85rem;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: var(--emerald-400);
+      font-family: var(--font-code);
+    }
+
+    .footer-bottom {
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      color: var(--text-subtle);
+      font-size: 0.85rem;
+    }
+
+    .social-icons-row {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .social-icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .social-icon-btn:hover {
+      color: #FFFFFF;
+      border-color: var(--cyan-400);
+      background: rgba(56, 189, 248, 0.1);
+      transform: translateY(-2px);
+    }
+
+    /* SCROLL REVEAL UTILITY */
+    .reveal-elem {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal-elem.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* RESPONSIVE MEDIA QUERIES */
+    @media (max-width: 1024px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 4rem;
+      }
+      .hero-showcase {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .bento-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .bento-span-2 {
+        grid-column: span 2;
+      }
+      .steps-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links, .nav-actions .btn-ghost, .nav-tag {
+        display: none;
+      }
+      .mobile-toggle {
+        display: block;
+      }
+      .hero-section {
+        padding: 8rem 0 4rem;
+      }
+      .hero-stats-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .ide-main-body {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .ide-preview-col {
+        min-height: 250px;
+      }
+      .bento-grid {
+        grid-template-columns: 1fr;
+      }
+      .bento-span-2 {
+        grid-column: span 1;
+      }
+      .pg-split-grid {
+        grid-template-columns: 1fr;
+      }
+      .steps-grid {
+        grid-template-columns: 1fr;
+      }
+      .cta-container {
+        padding: 4rem 1.5rem;
+      }
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Animated Starfield / Particles Canvas -->
+  <canvas id="bg-canvas"></canvas>
+  <div class="grid-matrix-layer"></div>
+  <div class="aurora-glow glow-top-right"></div>
+  <div class="aurora-glow glow-mid-left"></div>
+  <div class="aurora-glow glow-bottom-right"></div>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-menu-drawer" id="mobileDrawer">
+    <button class="mobile-close-btn" id="mobileCloseBtn" aria-label="Close Navigation">
+      <i class="fas fa-times"></i>
+    </button>
+    <a href="#features" onclick="closeMobileMenu()">Features</a>
+    <a href="#playground" onclick="closeMobileMenu()">Live Playground</a>
+    <a href="#process" onclick="closeMobileMenu()">How It Works</a>
+    <a href="#comparison" onclick="closeMobileMenu()">Comparison</a>
+    <a href="#faq" onclick="closeMobileMenu()">FAQs</a>
+    <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; width: 80%; max-width: 280px;">
+      <a href="php/dashboard.php" class="btn btn-primary btn-xl" style="font-size: 1rem; width: 100%; text-align: center;">
+        <i class="fas fa-bolt"></i> Launch Studio
+      </a>
+      <a href="php/login.php" class="btn btn-secondary" style="font-size: 0.95rem; width: 100%; text-align: center;">
+        <i class="fas fa-sign-in-alt"></i> Log In
+      </a>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header id="mainHeader">
+    <nav class="nav-container">
+      <a href="#" class="brand-logo">
+        <div class="logo-icon-box">
+          <i class="fas fa-fire-burner"></i>
+        </div>
+        <div class="logo-text">Code<span>Oven</span></div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#playground">Playground</a></li>
+        <li><a href="#process">How it Works</a></li>
+        <li><a href="#comparison">Compare</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <span class="nav-tag"><i class="fas fa-wifi-slash"></i> Offline Ready</span>
+        <a href="php/login.php" class="btn btn-ghost">Log In</a>
+        <a href="php/dashboard.php" class="btn btn-primary btn-glow">
+          <i class="fas fa-bolt"></i>
+          <span>Open Editor</span>
+        </a>
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Open Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-grid">
+        
+        <!-- Left: Hero Text & CTAs -->
+        <div class="hero-content">
+          <div class="hero-badge-wrap reveal-elem">
+            <div class="pill-badge">
+              <span class="pill-badge-dot"></span>
+              <span>Next-Gen Web Studio · 100% Offline Capable</span>
+            </div>
+          </div>
+
+          <h1 class="hero-heading reveal-elem">
+            Bake Modern Web.<br>
+            <span class="gradient-text">Instant Live Preview.</span><br>
+            <span class="gradient-text-accent">Zero Friction.</span>
+          </h1>
+
+          <p class="hero-subtext reveal-elem">
+            A high-performance offline code environment for HTML, CSS, and JavaScript. Write code with zero setup, preview changes with sub-millisecond latency, and bundle production ZIP packages anytime.
+          </p>
+
+          <div class="hero-btn-group reveal-elem">
+            <a href="php/dashboard.php" class="btn btn-primary btn-xl btn-glow">
+              <i class="fas fa-play"></i> Start Coding Free
+            </a>
+            <a href="php/signup.php" class="btn btn-secondary btn-xl">
+              <i class="fas fa-cloud-arrow-up"></i> Save & Sync Projects
+            </a>
+          </div>
+
+          <!-- Metrics Strip -->
+          <div class="hero-stats-row reveal-elem">
+            <div class="stat-box">
+              <div class="stat-number">0<span>ms</span></div>
+              <div class="stat-label">Cloud Setup Required</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">&lt;2<span>ms</span></div>
+              <div class="stat-label">Instant Render Time</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">100<span>%</span></div>
+              <div class="stat-label">Offline First Architecture</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: 3D Interactive Mock IDE Preview -->
+        <div class="hero-showcase reveal-elem" id="heroShowcaseWrap">
+          
+          <div class="floating-card-tag tag-top-right">
+            <div class="tag-icon"><i class="fas fa-bolt"></i></div>
+            <div>
+              <div class="tag-text-main">Hot Reload Enabled</div>
+              <div class="tag-text-sub">Instant DOM Reconciliation</div>
+            </div>
+          </div>
+
+          <div class="floating-card-tag tag-bottom-left">
+            <div class="tag-icon" style="background: rgba(16,185,129,0.15); color: var(--emerald-400);">
+              <i class="fas fa-file-zipper"></i>
+            </div>
+            <div>
+              <div class="tag-text-main">1-Click Zip Export</div>
+              <div class="tag-text-sub">Deploy anywhere instantly</div>
+            </div>
+          </div>
+
+          <div class="ide-mockup-frame" id="heroIde3d">
+            <!-- IDE Window Header -->
+            <div class="ide-topbar">
+              <div class="ide-controls">
+                <span class="ide-dot dot-red"></span>
+                <span class="ide-dot dot-yellow"></span>
+                <span class="ide-dot dot-green"></span>
+              </div>
+
+              <div class="ide-tabs">
+                <button class="ide-tab tab-html active" id="tabHtmlBtn" onclick="switchHeroTab('html')">
+                  <i class="fab fa-html5"></i> index.html
+                </button>
+                <button class="ide-tab tab-css" id="tabCssBtn" onclick="switchHeroTab('css')">
+                  <i class="fab fa-css3-alt"></i> style.css
+                </button>
+                <button class="ide-tab tab-js" id="tabJsBtn" onclick="switchHeroTab('js')">
+                  <i class="fab fa-js"></i> app.js
+                </button>
+              </div>
+
+              <div class="ide-quick-actions">
+                <div class="ide-badge-pill">
+                  <i class="fas fa-circle-check"></i> Live Sync
+                </div>
+              </div>
+            </div>
+
+            <!-- IDE Split Body -->
+            <div class="ide-main-body">
+              <!-- Code Column with Typing Simulator -->
+              <div class="ide-editor-col">
+                <div class="line-numbers" id="heroLineNums">
+                  1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12
+                </div>
+                <div class="code-content-area" id="heroCodeArea"></div>
+              </div>
+
+              <!-- Live Render Viewport -->
+              <div class="ide-preview-col">
+                <div class="preview-header-bar">
+                  <div class="preview-address-bar">
+                    <i class="fas fa-lock" style="color: var(--emerald-400); font-size: 0.6rem;"></i>
+                    <span>https://codeoven.local/live-preview</span>
+                  </div>
+                  <span style="font-size: 0.65rem; color: var(--text-muted);"><i class="fas fa-rotate"></i></span>
+                </div>
+
+                <div class="preview-viewport-box">
+                  <div class="live-demo-card" id="heroLiveCard">
+                    <div class="live-demo-icon">
+                      <i class="fas fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div class="live-demo-title gradient-text-accent">Glowing Hero</div>
+                    <div class="live-demo-desc">Rendered with zero latency offline.</div>
+                    <button class="live-demo-btn" onclick="triggerHeroHeartbeat()">
+                      <i class="fas fa-sparkles"></i> Click Me
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Status Bar -->
+            <div class="ide-statusbar">
+              <div class="status-item">
+                <i class="fas fa-code-branch" style="color: var(--cyan-400);"></i>
+                <span>main · UTF-8 · HTML5</span>
+              </div>
+              <div class="status-item">
+                <i class="fas fa-bolt" style="color: var(--emerald-400);"></i>
+                <span>Render: 1.4ms · Memory: Optimal</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE TECH STACK TICKER -->
+  <div class="marquee-section">
+    <div class="marquee-track" id="marqueeTrack">
+      <div class="marquee-item"><i class="fab fa-html5"></i> Semantic HTML5 Architecture <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fab fa-css3-alt"></i> Modern CSS & Flex/Grid <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fab fa-js"></i> ES2024 Modern JavaScript <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-wifi-slash"></i> 100% Offline Ready <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-file-zipper"></i> Production Zip Packaging <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-database"></i> LocalStorage & MySQL Sync <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-keyboard"></i> Pro Keybindings & Emmet <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-gauge-high"></i> Zero-Lag Live Sandbox <span class="marquee-dot"></span></div>
+      <!-- Duplicated for continuous smooth scroll -->
+      <div class="marquee-item"><i class="fab fa-html5"></i> Semantic HTML5 Architecture <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fab fa-css3-alt"></i> Modern CSS & Flex/Grid <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fab fa-js"></i> ES2024 Modern JavaScript <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-wifi-slash"></i> 100% Offline Ready <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-file-zipper"></i> Production Zip Packaging <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-database"></i> LocalStorage & MySQL Sync <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-keyboard"></i> Pro Keybindings & Emmet <span class="marquee-dot"></span></div>
+      <div class="marquee-item"><i class="fas fa-gauge-high"></i> Zero-Lag Live Sandbox <span class="marquee-dot"></span></div>
+    </div>
+  </div>
+
+  <!-- CORE FEATURES BENTO GRID -->
+  <section class="sec-pad" id="features">
+    <div class="container">
+      <div class="section-head reveal-elem">
+        <div class="section-eyebrow"><i class="fas fa-layer-group"></i> Next-Level Capabilities</div>
+        <h2 class="section-title">Engineered For Pure Speed</h2>
+        <p class="section-desc">CodeOven cuts away bloated build pipelines, heavy package managers, and online dependencies so you can build at the speed of thought.</p>
+      </div>
+
+      <div class="bento-grid">
+        
+        <!-- Bento 1: Live Preview Engine (Span 2) -->
+        <div class="bento-card bento-span-2 reveal-elem">
+          <div>
+            <div class="bento-icon-box">
+              <i class="fas fa-bolt-lightning"></i>
+            </div>
+            <div class="bento-tag">01 — Core Engine</div>
+            <h3 class="bento-title">Sub-Millisecond Live Sandboxing</h3>
+            <p class="bento-desc">
+              Every keystroke renders inside an isolated iframe sandbox in real-time. No compilation steps, no waiting for hot module replacement, and no annoying page refreshes.
+            </p>
+          </div>
+          <div class="bento-mini-mockup">
+            <span class="syn-comment">// Live Event Stream</span><br>
+            <span class="syn-kw">const</span> engine = <span class="syn-kw">new</span> <span class="syn-fn">LiveSandbox</span>({ debounce: <span class="syn-val">0</span>, sandbox: <span class="syn-str">'strict'</span> });<br>
+            engine.<span class="syn-fn">onUpdate</span>((dom) =&gt; <span class="syn-fn">renderImmediately</span>(dom)); <span class="syn-comment">// &lt; 2ms latency ✓</span>
+          </div>
+        </div>
+
+        <!-- Bento 2: 100% Offline Capability -->
+        <div class="bento-card purple reveal-elem">
+          <div>
+            <div class="bento-icon-box">
+              <i class="fas fa-plane-slash"></i>
+            </div>
+            <div class="bento-tag">02 — Reliability</div>
+            <h3 class="bento-title">100% Offline First</h3>
+            <p class="bento-desc">
+              Whether you are on a flight, in a cafe with spotty Wi-Fi, or completely disconnected, CodeOven executes natively inside your browser.
+            </p>
+          </div>
+          <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 8px; color: var(--purple-500); font-family: var(--font-code); font-size: 0.8rem;">
+            <i class="fas fa-check-circle"></i> Zero Cloud Dependency
+          </div>
+        </div>
+
+        <!-- Bento 3: One-Click Production Export -->
+        <div class="bento-card emerald reveal-elem">
+          <div>
+            <div class="bento-icon-box">
+              <i class="fas fa-file-zipper"></i>
+            </div>
+            <div class="bento-tag">03 — Portability</div>
+            <h3 class="bento-title">One-Click ZIP Export</h3>
+            <p class="bento-desc">
+              Package your entire project structure into a clean, deployable ZIP archive with standard HTML5 boilerplate ready for Netlify, Vercel, or GitHub Pages.
+            </p>
+          </div>
+          <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 8px; color: var(--emerald-400); font-family: var(--font-code); font-size: 0.8rem;">
+            <i class="fas fa-download"></i> Standard Clean Assets
+          </div>
+        </div>
+
+        <!-- Bento 4: Multi-File Management (Span 2) -->
+        <div class="bento-card bento-span-2 reveal-elem">
+          <div>
+            <div class="bento-icon-box">
+              <i class="fas fa-folder-tree"></i>
+            </div>
+            <div class="bento-tag">04 — Architecture</div>
+            <h3 class="bento-title">Intelligent Project & File System</h3>
+            <p class="bento-desc">
+              Manage multiple tabs for HTML, modular CSS stylesheets, and JavaScript logic seamlessly. Your files persist safely with auto-save and optional authenticated cloud synchronization.
+            </p>
+          </div>
+          <div class="bento-mini-mockup" style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <div><i class="fas fa-file-code" style="color: var(--cyan-400);"></i> index.html</div>
+            <div><i class="fas fa-file-lines" style="color: var(--indigo-500);"></i> style.css</div>
+            <div><i class="fab fa-js" style="color: #FACC15;"></i> main.js</div>
+            <div><i class="fas fa-shield-halved" style="color: var(--emerald-400);"></i> Auto-Saved</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE PLAYGROUND RIGHT ON THE LANDING PAGE -->
+  <section class="sec-pad playground-section" id="playground">
+    <div class="container">
+      <div class="section-head reveal-elem">
+        <div class="section-eyebrow"><i class="fas fa-laptop-code"></i> Interactive Live Test</div>
+        <h2 class="section-title">Try CodeOven Right Here</h2>
+        <p class="section-desc">Experience the instant live rendering engine without even leaving this page. Click presets or write code below!</p>
+      </div>
+
+      <div class="playground-wrapper reveal-elem">
+        <!-- Playground Topbar with preset switcher -->
+        <div class="pg-topbar">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="ide-dot dot-red"></span>
+            <span class="ide-dot dot-yellow"></span>
+            <span class="ide-dot dot-green"></span>
+            <span style="font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; margin-left: 8px;">
+              Live Interactive Sandbox
+            </span>
+          </div>
+
+          <div class="pg-preset-group">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Presets:</span>
+            <button class="pg-preset-btn active" onclick="loadPgPreset('neonCard')">Neon Card</button>
+            <button class="pg-preset-btn" onclick="loadPgPreset('counterApp')">Interactive Counter</button>
+            <button class="pg-preset-btn" onclick="loadPgPreset('gradientPulse')">Pulse Animation</button>
+          </div>
+
+          <a href="php/dashboard.php" class="btn btn-primary btn-sm">
+            <i class="fas fa-up-right-from-square"></i> Open Full Studio
+          </a>
+        </div>
+
+        <!-- Playground Editor & Output Split -->
+        <div class="pg-split-grid">
+          <!-- Editor Side -->
+          <div class="pg-editor-box">
+            <div class="pg-tab-bar">
+              <button class="pg-tab active"><i class="fab fa-html5"></i> Complete Code</button>
+            </div>
+            <textarea class="pg-textarea" id="pgInputArea" spellcheck="false" placeholder="Write HTML & CSS here..."></textarea>
+          </div>
+
+          <!-- Realtime Sandbox Viewport -->
+          <div class="pg-preview-box">
+            <div class="pg-preview-header">
+              <span><i class="fas fa-play" style="color: var(--emerald-400);"></i> Live Rendering Frame</span>
+              <span id="pgLatencyBadge"><i class="fas fa-bolt"></i> 0ms lag</span>
+            </div>
+            <iframe class="pg-iframe-container" id="pgIframe" title="CodeOven Live Sandbox"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS / PIPELINE -->
+  <section class="sec-pad" id="process">
+    <div class="container">
+      <div class="section-head reveal-elem">
+        <div class="section-eyebrow"><i class="fas fa-sliders"></i> Seamless Workflow</div>
+        <h2 class="section-title">Zero Friction from Idea to Output</h2>
+        <p class="section-desc">Traditional web dev requires installs, npm scripts, and terminal commands. CodeOven simplifies your prototyping cycle into four instant steps.</p>
+      </div>
+
+      <div class="steps-grid">
+        
+        <div class="step-card reveal-elem">
+          <div class="step-number-tag">01</div>
+          <h3 class="step-heading">Launch Instant Studio</h3>
+          <p class="step-text">Open the browser app with one click. No registration required, no npm install, and zero setup lag.</p>
+        </div>
+
+        <div class="step-card reveal-elem">
+          <div class="step-number-tag">02</div>
+          <h3 class="step-heading">Code in Real-Time</h3>
+          <p class="step-text">Write HTML structure, CSS stylings, and JavaScript logic with syntax highlights and keyboard shortcuts.</p>
+        </div>
+
+        <div class="step-card reveal-elem">
+          <div class="step-number-tag">03</div>
+          <h3 class="step-heading">Instant Live Preview</h3>
+          <p class="step-text">Watch your user interface render dynamically as you type without ever having to reload your page.</p>
+        </div>
+
+        <div class="step-card reveal-elem">
+          <div class="step-number-tag">04</div>
+          <h3 class="step-heading">Export & Ship Anywhere</h3>
+          <p class="step-text">Download clean ZIP packages or copy your code directly into any production framework or hosting platform.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON TABLE -->
+  <section class="sec-pad" id="comparison" style="background: rgba(4, 9, 24, 0.5);">
+    <div class="container">
+      <div class="section-head reveal-elem">
+        <div class="section-eyebrow"><i class="fas fa-scale-balanced"></i> Benchmark</div>
+        <h2 class="section-title">Why Developers Choose CodeOven</h2>
+        <p class="section-desc">See how CodeOven delivers the fastest web prototyping experience compared to bloated cloud alternatives and heavyweight local IDE setups.</p>
+      </div>
+
+      <div class="comparison-wrapper reveal-elem">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Feature & Capability</th>
+              <th class="highlight-col"><i class="fas fa-fire-burner"></i> CodeOven</th>
+              <th>Cloud Sandboxes (CodePen/JSFiddle)</th>
+              <th>Local Heavyweight IDEs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="feature-name"><i class="fas fa-wifi"></i> Works 100% Offline</td>
+              <td class="highlight-col"><i class="fas fa-circle-check check-yes"></i> Yes (Native Client)</td>
+              <td><i class="fas fa-circle-xmark check-no"></i> No (Internet Required)</td>
+              <td><i class="fas fa-circle-check check-yes"></i> Yes</td>
+            </tr>
+            <tr>
+              <td class="feature-name"><i class="fas fa-bolt"></i> Setup Time</td>
+              <td class="highlight-col"><i class="fas fa-circle-check check-yes"></i> 0 Seconds (Instant)</td>
+              <td><i class="fas fa-circle-check check-yes"></i> Instant</td>
+              <td><i class="fas fa-circle-xmark check-no"></i> 10-30 mins (Node/NPM/Ext)</td>
+            </tr>
+            <tr>
+              <td class="feature-name"><i class="fas fa-file-zipper"></i> Free 1-Click ZIP Export</td>
+              <td class="highlight-col"><i class="fas fa-circle-check check-yes"></i> Included Free</td>
+              <td><i class="fas fa-circle-xmark check-no"></i> Paywalled / Limited</td>
+              <td><i class="fas fa-circle-check check-yes"></i> Manual Archive</td>
+            </tr>
+            <tr>
+              <td class="feature-name"><i class="fas fa-shield-halved"></i> Privacy & Local Storage</td>
+              <td class="highlight-col"><i class="fas fa-circle-check check-yes"></i> Data stays in your browser</td>
+              <td><i class="fas fa-circle-xmark check-no"></i> Stored on 3rd party servers</td>
+              <td><i class="fas fa-circle-check check-yes"></i> Local Hard Drive</td>
+            </tr>
+            <tr>
+              <td class="feature-name"><i class="fas fa-gauge-simple-high"></i> Memory Footprint</td>
+              <td class="highlight-col"><i class="fas fa-circle-check check-yes"></i> Ultra Lightweight (&lt; 20MB)</td>
+              <td><i class="fas fa-circle-xmark check-no"></i> High (Multiple Cloud Scripts)</td>
+              <td><i class="fas fa-circle-xmark check-no"></i> Heavy (1GB+ RAM)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ SECTION -->
+  <section class="sec-pad" id="faq">
+    <div class="container">
+      <div class="section-head reveal-elem">
+        <div class="section-eyebrow"><i class="fas fa-circle-question"></i> Help & Answers</div>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">Got questions about offline capabilities, saving code, or exporting projects? We've got you covered.</p>
+      </div>
+
+      <div class="faq-grid reveal-elem">
+        
+        <div class="faq-item active">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Do I need an internet connection to use CodeOven?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            No! CodeOven is built offline-first. All rendering, syntax formatting, and live updates occur directly inside your browser's client engine without sending your source code to external servers.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Can I export my projects to build production websites?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            Yes, with a single click of the "Export ZIP" button, CodeOven bundles your HTML, CSS, and JS files into an organized zip archive ready for hosting on GitHub Pages, Netlify, Vercel, or any standard web server.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Do I need to create an account to start coding?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            No account is required to use CodeOven. You can jump directly into the editor and start building immediately. Creating a free account allows you to securely sync your projects across devices via the integrated backend.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">
+            <span>Which web technologies are supported?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            CodeOven fully supports HTML5, CSS3 (including Flexbox, CSS Grid, Custom Properties, and animations), and modern JavaScript (ES6+). You can also link external CDN libraries such as FontAwesome, Tailwind, Bootstrap, and Google Fonts.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- HIGH-IMPACT CALL TO ACTION -->
+  <section class="sec-pad" style="padding-top: 0;">
+    <div class="container">
+      <div class="cta-container reveal-elem">
+        <div class="cta-glow-orb-1"></div>
+        <div class="cta-glow-orb-2"></div>
+
+        <div class="pill-badge" style="margin-bottom: 1.5rem; position: relative; z-index: 1;">
+          <span class="pill-badge-dot"></span> Ready in Under 5 Seconds
+        </div>
+
+        <h2 class="cta-title">
+          Ready to Start Baking<br>
+          <span class="gradient-text">Your Next Big Web Project?</span>
+        </h2>
+
+        <p class="cta-desc">
+          No signups, no credit cards, no command line configs. Open the editor and experience the cleanest offline web workspace today.
+        </p>
+
+        <div class="cta-actions">
+          <a href="php/dashboard.php" class="btn btn-primary btn-xl btn-glow">
+            <i class="fas fa-bolt"></i> Launch CodeOven Free
+          </a>
+          <a href="php/signup.php" class="btn btn-secondary btn-xl">
+            <i class="fas fa-user-plus"></i> Create Free Account
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        
+        <div class="footer-brand">
+          <a href="#" class="brand-logo">
+            <div class="logo-icon-box">
+              <i class="fas fa-fire-burner"></i>
+            </div>
+            <div class="logo-text">Code<span>Oven</span></div>
+          </a>
+          <p>
+            The ultra-fast, offline-ready web IDE for rapid prototyping, learning, and building modern web experiences with zero friction.
+          </p>
+          <div style="margin-top: 1.5rem;">
+            <div class="status-indicator-box">
+              <span class="pill-badge-dot"></span> All Systems Operational
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Navigation</div>
+          <ul class="footer-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#playground">Interactive Playground</a></li>
+            <li><a href="#process">How It Works</a></li>
+            <li><a href="#comparison">Compare Tools</a></li>
+            <li><a href="#faq">Frequently Asked</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Product</div>
+          <ul class="footer-links">
+            <li><a href="php/dashboard.php">Web Studio</a></li>
+            <li><a href="php/login.php">Account Login</a></li>
+            <li><a href="php/signup.php">Create Account</a></li>
+            <li><a href="https://github.com" target="_blank" rel="noopener">Documentation</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Tech Specifications</div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem;">
+            Built with pure HTML5, vanilla CSS, modern JS, and PHP/MySQL backend persistence.
+          </p>
+          <div class="social-icons-row">
+            <a href="https://github.com" target="_blank" rel="noopener" class="social-icon-btn" aria-label="GitHub"><i class="fab fa-github"></i></a>
+            <a href="https://twitter.com" target="_blank" rel="noopener" class="social-icon-btn" aria-label="Twitter"><i class="fab fa-x-twitter"></i></a>
+            <a href="https://discord.com" target="_blank" rel="noopener" class="social-icon-btn" aria-label="Discord"><i class="fab fa-discord"></i></a>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          © <span id="currentYear"></span> CodeOven. All rights reserved. Crafted for high-velocity developers.
+        </div>
+        <div style="display: flex; gap: 1.5rem;">
+          <a href="#" style="color: var(--text-subtle); text-decoration: none;">Privacy Policy</a>
+          <a href="#" style="color: var(--text-subtle); text-decoration: none;">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT LOGIC -->
+  <script>
+    // Set dynamic current year in footer
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Sticky Header Scroll Effect
+    const mainHeader = document.getElementById('mainHeader');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 40) {
+        mainHeader.classList.add('scrolled');
+      } else {
+        mainHeader.classList.remove('scrolled');
+      }
+    });
+
+    // Mobile Navigation Drawer Toggle
+    const mobileToggle = document.getElementById('mobileToggle');
+    const mobileCloseBtn = document.getElementById('mobileCloseBtn');
+    const mobileDrawer = document.getElementById('mobileDrawer');
+
+    mobileToggle.addEventListener('click', () => {
+      mobileDrawer.classList.add('active');
+    });
+
+    mobileCloseBtn.addEventListener('click', closeMobileMenu);
+
+    function closeMobileMenu() {
+      mobileDrawer.classList.remove('active');
+    }
+
+    // Interactive Starfield & Particle Canvas Engine
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let width, height;
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class StarParticle {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 1.8 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.3;
+        this.speedY = (Math.random() - 0.5) * 0.3;
+        this.alpha = Math.random() * 0.6 + 0.1;
+        this.fadeSpeed = Math.random() * 0.008 + 0.003;
+        this.color = Math.random() > 0.4 ? 'rgba(56, 189, 248,' : (Math.random() > 0.5 ? 'rgba(99, 102, 241,' : 'rgba(6, 182, 212,');
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha += this.fadeSpeed;
+        if (this.alpha > 0.75 || this.alpha < 0.1) {
+          this.fadeSpeed = -this.fadeSpeed;
+        }
+        if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
+          this.reset();
+        }
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `${this.color}${this.alpha})`;
+        ctx.shadowBlur = this.size * 4;
+        ctx.shadowColor = '#38BDF8';
+        ctx.fill();
+      }
+    }
+
+    for (let i = 0; i < 45; i++) {
+      particles.push(new StarParticle());
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // 3D Tilt Effect on Hero Showcase
+    const heroShowcaseWrap = document.getElementById('heroShowcaseWrap');
+    const heroIde3d = document.getElementById('heroIde3d');
+
+    if (heroShowcaseWrap && heroIde3d) {
+      heroShowcaseWrap.addEventListener('mousemove', (e) => {
+        const rect = heroShowcaseWrap.getBoundingClientRect();
+        const xRatio = (e.clientX - rect.left) / rect.width - 0.5;
+        const yRatio = (e.clientY - rect.top) / rect.height - 0.5;
+        heroIde3d.style.transform = `rotateY(${xRatio * 16}deg) rotateX(${-yRatio * 12}deg)`;
+      });
+
+      heroShowcaseWrap.addEventListener('mouseleave', () => {
+        heroIde3d.style.transform = 'rotateY(-6deg) rotateX(3deg)';
+      });
+    }
+
+    // Hero IDE Code Simulation Switcher
+    const codeSnippets = {
+      html: [
+        '<span class="syn-comment">&lt;!-- CodeOven Modern Sandbox --&gt;</span>',
+        '<span class="syn-tag">&lt;div</span> <span class="syn-attr">class</span>=<span class="syn-str">"cyber-card"</span><span class="syn-tag">&gt;</span>',
+        '  <span class="syn-tag">&lt;div</span> <span class="syn-attr">class</span>=<span class="syn-str">"icon-box"</span><span class="syn-tag">&gt;</span>⚡<span class="syn-tag">&lt;/div&gt;</span>',
+        '  <span class="syn-tag">&lt;h3&gt;</span>Bake Your Code<span class="syn-tag">&lt;/h3&gt;</span>',
+        '  <span class="syn-tag">&lt;p&gt;</span>Sub-millisecond preview.<span class="syn-tag">&lt;/p&gt;</span>',
+        '  <span class="syn-tag">&lt;button</span> <span class="syn-attr">id</span>=<span class="syn-str">"actionBtn"</span><span class="syn-tag">&gt;</span>Launch<span class="syn-tag">&lt;/button&gt;</span>',
+        '<span class="syn-tag">&lt;/div&gt;</span>',
+        '<span class="syn-comment">// Live rendering active ✓</span>'
+      ],
+      css: [
+        '<span class="syn-comment">/* Modern Glassmorphic Styling */</span>',
+        '<span class="syn-prop">.cyber-card</span> {',
+        '  <span class="syn-prop">background</span>: <span class="syn-val">rgba(15, 23, 42, 0.8)</span>;',
+        '  <span class="syn-prop">border</span>: <span class="syn-val">1px solid #38BDF8</span>;',
+        '  <span class="syn-prop">backdrop-filter</span>: <span class="syn-val">blur(16px)</span>;',
+        '  <span class="syn-prop">border-radius</span>: <span class="syn-val">16px</span>;',
+        '  <span class="syn-prop">box-shadow</span>: <span class="syn-val">0 10px 40px rgba(0,0,0,0.5)</span>;',
+        '}'
+      ],
+      js: [
+        '<span class="syn-comment">// Interactive Script Logic</span>',
+        '<span class="syn-kw">const</span> btn = document.<span class="syn-fn">getElementById</span>(<span class="syn-str">"actionBtn"</span>);',
+        'btn.<span class="syn-fn">addEventListener</span>(<span class="syn-str">"click"</span>, () =&gt; {',
+        '  <span class="syn-fn">triggerGlowEffect</span>();',
+        '  console.<span class="syn-fn">log</span>(<span class="syn-str">"CodeOven Live Sandbox Active!"</span>);',
+        '});'
+      ]
+    };
+
+    let activeHeroTab = 'html';
+    const heroCodeArea = document.getElementById('heroCodeArea');
+    let typingTimer = null;
+
+    function renderHeroCode(tabKey) {
+      if (typingTimer) clearTimeout(typingTimer);
+      heroCodeArea.innerHTML = '';
+      const lines = codeSnippets[tabKey];
+      let lineIdx = 0;
+      let charIdx = 0;
+      let renderedLines = [];
+
+      const rawLines = lines.map(l => l.replace(/<[^>]+>/g, ''));
+
+      function typeLine() {
+        if (lineIdx >= lines.length) return;
+        const plain = rawLines[lineIdx];
+        if (charIdx < plain.length) {
+          const partial = lines[lineIdx].replace(plain, plain.slice(0, charIdx + 1));
+          heroCodeArea.innerHTML = [...renderedLines, partial + '<span class="cursor-blink"></span>'].join('<br>');
+          charIdx++;
+          typingTimer = setTimeout(typeLine, 35);
+        } else {
+          renderedLines.push(lines[lineIdx]);
+          lineIdx++;
+          charIdx = 0;
+          typingTimer = setTimeout(typeLine, 180);
+        }
+      }
+      typeLine();
+    }
+
+    function switchHeroTab(tabKey) {
+      activeHeroTab = tabKey;
+      document.querySelectorAll('.ide-tab').forEach(t => t.classList.remove('active'));
+      if (tabKey === 'html') document.getElementById('tabHtmlBtn').classList.add('active');
+      if (tabKey === 'css') document.getElementById('tabCssBtn').classList.add('active');
+      if (tabKey === 'js') document.getElementById('tabJsBtn').classList.add('active');
+      renderHeroCode(tabKey);
+    }
+
+    // Initialize Hero typing
+    renderHeroCode('html');
+
+    // Trigger Heartbeat animation on hero live card
+    function triggerHeroHeartbeat() {
+      const card = document.getElementById('heroLiveCard');
+      card.style.transform = 'scale(1.1) rotate(2deg)';
+      card.style.boxShadow = '0 0 45px rgba(56, 189, 248, 0.7)';
+      setTimeout(() => {
+        card.style.transform = '';
+        card.style.boxShadow = '';
+      }, 400);
+    }
+
+    // Bento Spotlight Mouse Move
+    document.querySelectorAll('.bento-card').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+
+    // INTERACTIVE PLAYGROUND LOGIC
+    const playgroundPresets = {
+      neonCard: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #090e24;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+    }
+    .card {
+      background: rgba(15, 26, 54, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.3);
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-8px);
+    }
+    h2 { margin-top: 0; color: #38bdf8; }
+    p { color: #94a3b8; font-size: 14px; }
+    button {
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      border: none;
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>⚡ CodeOven Live</h2>
+    <p>Edit this code in real-time on the left!</p>
+    <button onclick="alert('Baking completed! 🥐')">Click to Test</button>
+  </div>
+</body>
+</html>`,
+
+      counterApp: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #070b19;
+      font-family: sans-serif;
+      color: #fff;
+    }
+    .box {
+      text-align: center;
+      background: #0f1c3f;
+      padding: 2rem 3rem;
+      border-radius: 16px;
+      border: 1px solid #38bdf8;
+    }
+    .num { font-size: 50px; font-weight: bold; color: #34d399; }
+    .btn-row { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+    button {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      background: #3b82f6;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div style="font-size: 13px; color: #94a3b8;">INTERACTIVE COUNTER</div>
+    <div class="num" id="cnt">0</div>
+    <div class="btn-row">
+      <button onclick="c--; document.getElementById('cnt').innerText = c;">-1</button>
+      <button onclick="c=0; document.getElementById('cnt').innerText = c;">Reset</button>
+      <button onclick="c++; document.getElementById('cnt').innerText = c;">+1</button>
+    </div>
+  </div>
+  <script>let c = 0;<\/script>
+</body>
+</html>`,
+
+      gradientPulse: `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #040714;
+      font-family: sans-serif;
+    }
+    .orb {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #ec4899, #8b5cf6, #06b6d4);
+      animation: spin 3s linear infinite, glow 2s ease-in-out infinite alternate;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes glow {
+      0% { box-shadow: 0 0 20px #8b5cf6; }
+      100% { box-shadow: 0 0 60px #06b6d4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb">Pure CSS</div>
+</body>
+</html>`
+    };
+
+    const pgInputArea = document.getElementById('pgInputArea');
+    const pgIframe = document.getElementById('pgIframe');
+    const pgLatencyBadge = document.getElementById('pgLatencyBadge');
+
+    function updatePlaygroundPreview() {
+      const code = pgInputArea.value;
+      const t0 = performance.now();
+      pgIframe.srcdoc = code;
+      const t1 = performance.now();
+      const diff = Math.max(0.4, (t1 - t0)).toFixed(1);
+      pgLatencyBadge.innerHTML = `<i class="fas fa-bolt" style="color:var(--emerald-400)"></i> ${diff}ms lag`;
+    }
+
+    function loadPgPreset(key) {
+      document.querySelectorAll('.pg-preset-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      pgInputArea.value = playgroundPresets[key];
+      updatePlaygroundPreview();
+    }
+
+    pgInputArea.addEventListener('input', updatePlaygroundPreview);
+
+    // Load initial preset
+    pgInputArea.value = playgroundPresets.neonCard;
+    updatePlaygroundPreview();
+
+    // FAQ Accordion Toggle
+    function toggleFaq(elem) {
+      const parent = elem.parentElement;
+      const wasActive = parent.classList.contains('active');
+      document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('active'));
+      if (!wasActive) {
+        parent.classList.add('active');
+      }
+    }
+
+    // Scroll Reveal Observer
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+        }
+      });
+    }, {
+      threshold: 0.12,
+      rootMargin: '0px 0px -40px 0px'
+    });
+
+    document.querySelectorAll('.reveal-elem').forEach(el => revealObserver.observe(el));
+  </script>
+</body>
+</html>
